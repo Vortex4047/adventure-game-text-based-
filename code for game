@@ -1,0 +1,353 @@
+import mysql.connector
+import random
+
+# Initialize the database connection
+try:
+    conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="mypass")
+    #auth_plugin='mysql_native_password')
+
+except mysql.connector.Error as err:
+    print("Error connecting to MySQL")
+    exit()
+
+# Initialize the cursor
+cursor = conn.cursor()
+cursor.execute("CREATE DATABASE IF NOT EXISTS adventure")
+cursor.execute("USE adventure")
+
+# Create tables
+cursor.execute('CREATE TABLE IF NOT EXISTS players(id INT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(255), health INT, max_health INT, attack INT, level INT, experience INT, score INT);')
+cursor.execute('CREATE TABLE IF NOT EXISTS locations(id INT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(255), description TEXT);')
+
+# Define the locations dictionary
+locations = {
+    "village": {
+        "text": "You are in the village. What will you do?",
+        "actions": {
+            "explore forest": "Explore the forest",
+            "enter cave": "Enter the cave",
+            "enter castle": "Enter the castle",
+            "quit": "Quit the game",}},
+    "forest": {
+        "text": "You venture into the dense forest. What will you do?",
+        "actions": {
+            "return to village": "Return to the village",
+            "explore further": "Explore deeper into the forest",
+            "quit": "Quit the game",}},
+    "cave": {
+        "text": "You explore the depths of the cave. What will you do?",
+        "actions": {
+            "return to village": "Return to the village",
+            "search for treasure": "Search for treasure in the cave",
+            "quit": "Quit the game",}},
+    "castle": {
+        "text": "You cautiously enter the ancient castle. What will you do?",
+        "actions": {
+            "return to village": "Return to the village",
+            "investigate throne room": "Investigate the throne room",
+            "quit": "Quit the game",
+        }}}
+    # Add more locations and actions as needed
+
+
+# Function to display the start menu
+def start_menu():
+    print("""
+===================
+    ADVENTURE GAME
+===================
+""")
+    print("1. Start a New Game")
+    print("2. Load an Existing Game")
+    print("3. Manage Profiles")
+    print("4. Quit")
+
+    while True:
+        choice = input("Enter your choice (1/2/3/4): ")
+        if choice == '1':
+            return create_profile()
+        elif choice == '2':
+            return select_profile()
+        elif choice == '3':
+            manage_profiles()
+        elif choice == '4':
+            print("Thanks for playing!")
+            conn.close()
+            exit()
+        else:
+            print("Invalid choice. Please enter 1, 2, 3, or 4.")
+
+# Function to create a new profile
+def create_profile():
+    name = input("Enter your character's name: ")
+    player = {
+        "name": name,
+        "health": 100,
+        "max_health": 100,
+        "attack": 20,
+        "level": 1,
+        "experience": 0,
+        "score": 0}
+    return player
+
+# Function to select an existing profile
+def select_profile():
+    cursor.execute("SELECT name FROM players")
+    profiles = [row[0] for row in cursor.fetchall()]
+
+    print("Select a profile:")
+    for i in range(1, len(profiles) + 1):
+        print(f"{i}. {profiles[i - 1]}")
+
+    while True:
+        choice = input("Enter the profile number (1/2/3) or '0' to go back: ")
+        if choice == '0':
+            return start_menu()
+        elif choice.isdigit():
+            choice = int(choice)
+            if 1 <= choice <= len(profiles):
+                name = profiles[choice - 1]
+                player, location = load_game(name)
+                return player
+            else:
+                print("Invalid profile number. Please try again.")
+        else:
+            print("Invalid input. Please enter a number or '0'.")
+
+# Function to manage profiles
+def manage_profiles():
+    while True:
+        print("\n=== Profile Management ===")
+        print("1. List Profiles")
+        print("2. Delete Profile")
+        print("3. Go Back")
+        choice = input("Enter your choice (1/2/3): ")
+        if choice == '1':
+            list_profiles()
+        elif choice == '2':
+            delete_profile()
+        elif choice == '3':
+            return start_menu()
+        else:
+            print("Invalid choice. Please enter 1, 2, or 3.")
+
+# Function to list existing profiles
+def list_profiles():
+    cursor.execute("SELECT name FROM players")
+    profiles = [row[0] for row in cursor.fetchall()]
+
+    print("=== Existing Profiles ===")
+    for i in range(1, len(profiles) + 1):
+        print(f"{i}. {profiles[i - 1]}")
+
+# Function to delete a profile
+def delete_profile():
+    list_profiles()
+    choice = input("Enter the profile number to delete or '0' to cancel: ")
+    if choice == '0':
+        return
+    if choice.isdigit():
+        choice = int(choice)
+        cursor.execute("SELECT name FROM players")
+        profiles = [row[0] for row in cursor.fetchall()]
+        if 1 <= choice <= len(profiles):
+            name = profiles[choice - 1]
+            cursor.execute("DELETE FROM players WHERE name = %s", (name,))
+            conn.commit()
+            print(f"Profile '{name}' has been deleted.")
+        else:
+            print("Invalid profile number. Please try again.")
+    else:
+        print("Invalid input. Please enter a number or '0'.")
+
+# Function to explore the forest
+def explore_forest():
+    print("You venture into the dense forest.")
+    
+    # Introduce a random event
+    if random.choice([True, False]):
+        print("You encounter a friendly creature in the forest!")
+        print("It gives you a small gift.")
+        # Handle gaining an item or increasing health/experience here
+
+    print("What will you do?")
+    print("1. Search for herbs")
+    print("2. Climb a tree")
+    print("3. Return to the village")
+    
+    choice = input("Enter the number of your choice: ")
+
+    if choice == '1':
+        print("You find some medicinal herbs.")
+        # Handle gaining a healing item or increasing health here
+    elif choice == '2':
+        print("You climb a tall tree and get a better view of the forest.")
+        # Handle gaining information or discovering a new location here
+    elif choice == '3':
+        print("You decide to return to the village.")
+        return "village"
+    else:
+        print("Invalid choice. You stand still and contemplate.")
+
+    return "forest"
+
+# Function to enter the cave
+def enter_cave():
+    print("You explore the depths of the cave.")
+    
+    # Introduce a random event
+    if random.choice([True, False]):
+        print("You find a hidden passage leading to a treasure!")
+        print("You gain valuable items.")
+        # Handle gaining items or increasing score here
+
+    print("What will you do?")
+    print("1. Investigate the cave paintings")
+    print("2. Go deeper into the cave")
+    print("3. Return to the village")
+
+    choice = input("Enter the number of your choice: ")
+
+    if choice == '1':
+        print("The cave paintings depict ancient stories and symbols.")
+        # Handle gaining knowledge or unlocking a new ability here
+    elif choice == '2':
+        print("You venture deeper into the cave.")
+        # Add more scenarios or encounters in the deeper part of the cave
+    elif choice == '3':
+        print("You decide to return to the village.")
+        return "village"
+    else:
+        print("Invalid choice. You hesitate and reconsider your options.")
+
+    return "cave"
+
+# Function to enter the castle
+def enter_castle():
+    print("You cautiously enter the ancient castle.")
+    
+    # Introduce a random event
+    if random.choice([True, False]):
+        print("You discover a forgotten knowledge in the castle's library.")
+        print("You gain experience points.")
+        # Handle increasing experience points or unlocking new abilities here
+
+    print("What will you do?")
+    print("1. Investigate the throne room")
+    print("2. Explore the castle's library")
+    print("3. Return to the village")
+
+    choice = input("Enter the number of your choice: ")
+
+    if choice == '1':
+        print("You closely examine the throne room.")
+        # Add scenarios related to the throne room, such as encountering a ghost or finding a hidden passage
+    elif choice == '2':
+        print("You explore the vast library filled with dusty books.")
+        # Add scenarios related to the library, such as gaining knowledge or finding a rare book
+    elif choice == '3':
+        print("You decide to return to the village.")
+        return "village"
+    else:
+        print("Invalid choice. You feel overwhelmed by the castle's mysteries.")
+
+    return "castle"
+
+# Function to save the game
+def save_game(player, location):
+    cursor.execute("""
+        INSERT INTO players (name, health, max_health, attack, level, experience, score)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """, (player["name"], player["health"], player["max_health"], player["attack"],
+          player["level"], player["experience"], player["score"]))
+
+    cursor.execute("""
+        INSERT INTO locations (name, description)
+        VALUES (%s, %s)
+    """, (location, locations[location]["text"]))
+
+    conn.commit()
+    print("Game saved successfully!")
+
+# Function to load the game
+def load_game(player_name):
+    location = "village"  # Default location
+    try:
+        cursor.execute("SELECT * FROM players WHERE name = %s", (player_name,))
+        player_data = cursor.fetchone()
+
+        if player_data:
+            player = {
+                "name": player_data[1],
+                "health": player_data[2],
+                "max_health": player_data[3],
+                "attack": player_data[4],
+                "level": player_data[5],
+                "experience": player_data[6],
+                "score": player_data[7]}
+
+            cursor.execute(
+                "SELECT * FROM locations WHERE name = %s", (player_data[1],))
+            location_data = cursor.fetchone()
+
+            if location_data:
+                location = location_data[1]
+
+            print("Game loaded successfully!")
+            return player, location
+    except Exception as e:
+        print(f"Error loading game: {e}")
+    return None, None
+
+# Function to get player input
+def get_player_input(location, player):
+    while True:
+        print("\n" + locations[location]["text"])
+        print("Available actions:")
+        valid_actions = locations.get(location, {}).get("actions", {})
+        for action, description in valid_actions.items():
+            print(f"{action}: {description}")
+
+        choice = input("What will you do? ").lower()
+
+        if choice in valid_actions:
+            return choice
+        else:
+            print("Invalid action. Try again.")
+
+# Main game loop
+if __name__ == "__main__":
+    while True:
+        current_profile = start_menu()
+        if current_profile:
+            print(f"Welcome, {current_profile['name']}!")
+            location = "village"
+
+            while True:
+                action = get_player_input(location, current_profile)  # Pass 'locations' and 'current_profile' as parameters
+
+                if action == "quit":
+                    save_game(current_profile, location)
+                    print("Thanks for playing!")
+                    conn.close()
+                    exit()
+                elif location == "village" and action == "explore forest":
+                    location = explore_forest()
+                elif location == "village" and action == "enter cave":
+                    location = enter_cave()
+                elif location == "village" and action == "enter castle":
+                    location = enter_castle()
+                # Add more if-elif conditions for other game actions
+                # ...
+                elif location == "village" and action == "rest":
+                    print("You take a rest and recover some health.")
+                    current_profile["health"] = min(
+                        current_profile["max_health"], current_profile["health"] + 30)
+
+                elif location in ['forest', 'castle', 'cave'] and action == 'return to village':
+                    location = 'village'
+    # Close the database connection when the game loop ends
+    conn.close()
