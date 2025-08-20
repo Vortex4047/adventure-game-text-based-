@@ -1,4 +1,4 @@
-# adventure-game-text-based-
+# Text Based Adventure Game
 This is a text-based adventure game in Python that involves MySQL database features for the management of player profiles and game states. In this game, the user will be transported to a fantasy world where he/she is able to travel to different places, overcome different challenges, and make a lot of choices that will influence the development of his/her progress.
 
 ## Key Features:
