@@ -1045,7 +1045,7 @@ def initialize_game_data():
 if __name__ == "__main__":
     try:
         initialize_game_data()
-        print("🎮 Enhanced Adventure Game Starting...")
+        print("🎮 Adventure Game Starting...")
         print("💡 Tip: You can use numbers or type action names!")
         print("💡 Tip: Type 'check stats' anytime to see your character info!")
         main_game_loop()
